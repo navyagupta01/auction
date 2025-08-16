@@ -30,6 +30,8 @@ import { useSocket } from '../contexts/SocketContext';
 import { useAuth } from '../contexts/AuthContext';
 import { auctionAPI } from '../services/api';
 import BidConfirmationModal from '../components/BidConfirmationModal';
+// If you have WinnerDialog, import it:
+import WinnerDialog from '../components/WinnerDialog';
 
 const AuctionDetail = () => {
   const { id } = useParams();
@@ -44,21 +46,25 @@ const AuctionDetail = () => {
   const [placingBid, setPlacingBid] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Winner dialog state (for auction_ended popup)
+  const [winnerDialog, setWinnerDialog] = useState({
+    open: false,
+    winner: null,
+    auction: null,
+    winningBid: null
+  });
+
   useEffect(() => {
     fetchAuction();
+    // eslint-disable-next-line
   }, [id]);
 
   useEffect(() => {
-    console.log('🔍 Socket status:', { socket: !!socket, connected, user: !!user });
-
     if (socket && id && connected) {
-      console.log('🏠 Joining auction:', id);
       joinAuction(id);
 
       socket.on('new_bid', (bidData) => {
         if (bidData.auctionId === id) {
-          console.log('✅ New bid received:', bidData);
-
           setAuction(prev => ({
             ...prev,
             currentPrice: bidData.amount
@@ -78,18 +84,34 @@ const AuctionDetail = () => {
       });
 
       socket.on('bid_error', (error) => {
-        console.error('❌ Bid error received:', error);
         setError(error.message);
         setPlacingBid(false);
+      });
+
+      socket.on('auction_ended', (data) => {
+        // Popup winner dialog
+        setWinnerDialog({
+          open: true,
+          winner: data.winner,
+          auction: auction,
+          winningBid: data.winningBid
+        });
+        // Update auction UI status
+        setAuction(prev => ({
+          ...prev,
+          status: 'ended',
+          winnerId: data.winnerId
+        }));
       });
 
       return () => {
         leaveAuction(id);
         socket.off('new_bid');
         socket.off('bid_error');
+        socket.off('auction_ended');
       };
     }
-  }, [socket, id, user, connected]);
+  }, [socket, id, user, connected, auction, joinAuction, leaveAuction]);
 
   const fetchAuction = async () => {
     try {
@@ -115,13 +137,11 @@ const AuctionDetail = () => {
     const now = new Date();
     const end = new Date(auction.endTime);
     const diff = end - now;
-
     if (diff <= 0) return 'Ended';
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
     if (days > 0) return `${days}d ${hours}h ${minutes}m left`;
     if (hours > 0) return `${hours}h ${minutes}m left`;
     return `${minutes}m left`;
@@ -132,43 +152,35 @@ const AuctionDetail = () => {
       setError('Please login to place a bid');
       return;
     }
-
     if (!connected) {
       setError('Not connected to server. Please refresh and try again.');
       return;
     }
-
     setBidModalOpen(true);
     setError('');
   };
 
   const handleConfirmBid = async (amount) => {
-    console.log('🔨 Placing bid:', { auctionId: id, amount, userId: user.id });
-
     setPlacingBid(true);
     setError('');
-
     try {
       if (!socket || !connected) {
         throw new Error('Not connected to server. Please refresh and try again.');
       }
-
       socket.emit('place_bid', {
         auctionId: id,
         amount,
         userId: user.id,
         userEmail: user.email
       });
-
       setBidModalOpen(false);
-
     } catch (error) {
-      console.error('❌ Bid placement error:', error);
       setError(error.message || 'Failed to place bid. Please try again.');
       setPlacingBid(false);
     }
   };
 
+  // Main render section
   if (loading) {
     return (
       <Container maxWidth="md" sx={{ mt: 4, textAlign: 'center' }}>
@@ -208,7 +220,6 @@ const AuctionDetail = () => {
                 icon={auction.status === 'active' ? <TrendingUp /> : undefined}
               />
             </Box>
-
             <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
               <Chip label={auction.category} variant="outlined" />
               <Chip label={auction.condition} variant="outlined" />
@@ -226,17 +237,7 @@ const AuctionDetail = () => {
                 />
               </Card>
             ) : (
-              <Box
-                sx={{
-                  height: 400,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: 'grey.100',
-                  borderRadius: 2,
-                  mb: 3
-                }}
-              >
+              <Box sx={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.100', borderRadius: 2, mb: 3 }}>
                 <Gavel sx={{ fontSize: 80, color: 'grey.400' }} />
               </Box>
             )}
@@ -273,7 +274,7 @@ const AuctionDetail = () => {
               </Grid>
             </Grid>
 
-            {/* **THIS IS THE MAIN BID BUTTON SECTION** */}
+            {/* **MAIN BID BUTTON** */}
             {canBid && (
               <Box sx={{ mt: 4, textAlign: 'center' }}>
                 <Button
@@ -311,7 +312,6 @@ const AuctionDetail = () => {
                 </Alert>
               </Box>
             )}
-
             {user && user.id === auction.sellerId && (
               <Box sx={{ mt: 4, textAlign: 'center' }}>
                 <Alert severity="warning">
@@ -319,7 +319,6 @@ const AuctionDetail = () => {
                 </Alert>
               </Box>
             )}
-
             {auction.status === 'ended' && (
               <Box sx={{ mt: 4, textAlign: 'center' }}>
                 <Alert severity="error">
@@ -327,7 +326,6 @@ const AuctionDetail = () => {
                 </Alert>
               </Box>
             )}
-
             {error && (
               <Alert severity="error" sx={{ mt: 2 }}>
                 {error}
@@ -345,7 +343,6 @@ const AuctionDetail = () => {
                 Bid History ({bids.length})
               </Box>
             </Typography>
-
             <List>
               {bids.length === 0 ? (
                 <ListItem>
@@ -383,7 +380,6 @@ const AuctionDetail = () => {
                 ))
               )}
             </List>
-
             {/* Connection Status */}
             <Box sx={{ mt: 2, textAlign: 'center' }}>
               <Chip
@@ -396,7 +392,6 @@ const AuctionDetail = () => {
           </Paper>
         </Grid>
       </Grid>
-
       {/* Bid Confirmation Modal */}
       <BidConfirmationModal
         open={bidModalOpen}
@@ -406,7 +401,6 @@ const AuctionDetail = () => {
         suggestedBid={suggestedBid}
         loading={placingBid}
       />
-
       {/* Success Snackbar */}
       <Snackbar
         open={!!successMessage}
@@ -418,35 +412,18 @@ const AuctionDetail = () => {
           {successMessage}
         </Alert>
       </Snackbar>
+      {/* Winner Dialog (appears when auction ends) */}
+      {winnerDialog.open && (
+        <WinnerDialog
+          open={winnerDialog.open}
+          onClose={() => setWinnerDialog({ open: false })}
+          winner={winnerDialog.winner}
+          auction={winnerDialog.auction}
+          winningBid={winnerDialog.winningBid}
+        />
+      )}
     </Container>
   );
 };
-// In your AuctionDetail or Bidding component, add this useEffect:
-
-useEffect(() => {
-  if (socket) {
-    socket.on('auction_ended', (data) => {
-      console.log('Auction ended:', data);
-
-      // Show winner dialog
-      setWinnerDialog({
-        open: true,
-        winner: data.winner,
-        auction: data.auction,
-        winningBid: data.winningBid
-      });
-
-      // Update auction status
-      setAuction(prev => ({
-        ...prev,
-        status: 'ended',
-        winnerId: data.winnerId
-      }));
-    });
-
-    return () => socket.off('auction_ended');
-  }
-}, [socket]);
-
 
 export default AuctionDetail;
