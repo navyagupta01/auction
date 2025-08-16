@@ -15,6 +15,9 @@ import {
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
+// Fixed: Dynamic API base URL for production
+const API_BASE = process.env.REACT_APP_API_URL?.replace('/api', '') || 'https://auction-v80a.onrender.com';
+
 const AuctionCard = ({ auction }) => {
   const [imgError, setImgError] = useState(false);
 
@@ -39,10 +42,10 @@ const AuctionCard = ({ auction }) => {
     return `${hours}h left`;
   };
 
-  // Fix: Always point to backend server (port 5000) for images
+  // FIXED: Use dynamic API base URL
   const hasValidImage = auction.images && auction.images.length > 0 && !imgError;
   const imageUrl = hasValidImage
-    ? `http://localhost:5000/uploads/${auction.images[0]}`  // Force backend URL
+    ? `${API_BASE}/uploads/${auction.images[0]}`
     : null;
 
   console.log('🖼️ Image URL:', imageUrl);
@@ -62,7 +65,7 @@ const AuctionCard = ({ auction }) => {
         }
       }}
     >
-      {/* Image Section */}
+      {/* FIXED IMAGE SECTION */}
       {imageUrl ? (
         <CardMedia
           component="img"
@@ -171,7 +174,7 @@ const AuctionCard = ({ auction }) => {
           </Typography>
         </Box>
 
-        {/* Updated Action Button - Goes to Auction Detail Page */}
+        {/* Action Button - Goes to Auction Detail Page */}
         <Button
           variant="contained"
           fullWidth
