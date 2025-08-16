@@ -204,7 +204,7 @@ const Dashboard = () => {
               variant="contained"
               startIcon={<Gavel />}
               component={Link}
-              to="/create-auction"
+              to="/create"
               size="large"
             >
               Create New Auction
@@ -251,7 +251,7 @@ const Dashboard = () => {
                 <Button
                   variant="contained"
                   component={Link}
-                  to="/create-auction"
+                  to="/create"
                   sx={{ mt: 2 }}
                 >
                   Create Your First Auction
