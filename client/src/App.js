@@ -15,6 +15,11 @@ import Profile from './pages/Profile';     // User profile with detailed stats
 import AuctionList from './pages/AuctionList';
 import CreateAuction from './pages/CreateAuction';
 import AuctionDetail from './pages/AuctionDetail';
+import SellerDashboard from './pages/SellerDashboard';
+
+// Add this route in your Router:
+<Route path="/dashboard" element={<SellerDashboard />} />
+
 
 const theme = createTheme({
   palette: {

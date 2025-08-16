@@ -421,5 +421,32 @@ const AuctionDetail = () => {
     </Container>
   );
 };
+// In your AuctionDetail or Bidding component, add this useEffect:
+
+useEffect(() => {
+  if (socket) {
+    socket.on('auction_ended', (data) => {
+      console.log('Auction ended:', data);
+
+      // Show winner dialog
+      setWinnerDialog({
+        open: true,
+        winner: data.winner,
+        auction: data.auction,
+        winningBid: data.winningBid
+      });
+
+      // Update auction status
+      setAuction(prev => ({
+        ...prev,
+        status: 'ended',
+        winnerId: data.winnerId
+      }));
+    });
+
+    return () => socket.off('auction_ended');
+  }
+}, [socket]);
+
 
 export default AuctionDetail;
