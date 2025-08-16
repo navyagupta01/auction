@@ -33,6 +33,9 @@ import BidConfirmationModal from '../components/BidConfirmationModal';
 // If you have WinnerDialog, import it:
 import WinnerDialog from '../components/WinnerDialog';
 
+// Fixed: Dynamic API base URL for production
+const API_BASE = process.env.REACT_APP_API_URL?.replace('/api', '') || 'https://auction-v80a.onrender.com';
+
 const AuctionDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
@@ -225,15 +228,22 @@ const AuctionDetail = () => {
               <Chip label={auction.condition} variant="outlined" />
             </Box>
 
-            {/* Image */}
+            {/* FIXED IMAGE SECTION */}
             {auction.images && auction.images.length > 0 ? (
               <Card sx={{ mb: 3 }}>
                 <CardMedia
                   component="img"
                   height="400"
-                  image={`http://localhost:5000/uploads/${auction.images[0]}`}
+                  image={`${API_BASE}/uploads/${auction.images[0]}`}
                   alt={auction.title}
                   sx={{ objectFit: 'cover' }}
+                  onError={(e) => {
+                    console.error('❌ Image failed to load:', `${API_BASE}/uploads/${auction.images[0]}`);
+                    e.target.style.display = 'none';
+                  }}
+                  onLoad={() => {
+                    console.log('✅ Image loaded successfully:', `${API_BASE}/uploads/${auction.images[0]}`);
+                  }}
                 />
               </Card>
             ) : (
