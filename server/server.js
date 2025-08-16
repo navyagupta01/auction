@@ -53,9 +53,6 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is working!', timestamp: new Date() });
 });
 
-// Add error handler after routes
-app.use(errorHandler);
-
 const createTablesManually = async () => {
   try {
     console.log('🗑️ Dropping existing tables to fix case issues...');
@@ -229,11 +226,17 @@ const startServer = async () => {
   }
 };
 
+// CRITICAL FIX: Production static file serving with catch-all route
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'public')));
-  app.get('/', (req, res) => {
+
+  // CATCH-ALL ROUTE: This must come AFTER all API routes but BEFORE error handler
+  app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
 }
+
+// Error handler comes LAST
+app.use(errorHandler);
 
 startServer();
