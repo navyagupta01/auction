@@ -39,37 +39,15 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.set('io', io);
 
 console.log('📋 Registering routes...');
-
-// SAFE ROUTE REGISTRATION - Only register routes that we know work
-try {
-  app.use('/api/auth', require('./routes/auth'));
-  console.log('✅ Auth routes registered');
-} catch (error) {
-  console.log('❌ Auth routes failed:', error.message);
-}
-
-try {
-  app.use('/api/auctions', require('./routes/auctions'));
-  console.log('✅ Auction routes registered');
-} catch (error) {
-  console.log('❌ Auction routes failed:', error.message);
-}
-
-// SKIP analytics for now to avoid the error
-// try {
-//   const analyticsRoutes = require('./routes/analytics');
-//   app.use('/api/analytics', analyticsRoutes);
-//   console.log('✅ Analytics routes registered');
-// } catch (error) {
-//   console.log('❌ Analytics routes failed:', error.message);
-// }
-
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auctions', require('./routes/auctions'));
 console.log('✅ Routes registered');
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is working!', timestamp: new Date() });
 });
 
+// Your existing table creation and Socket.io code...
 const createTablesManually = async () => {
   try {
     console.log('🗑️ Dropping existing tables to fix case issues...');
@@ -124,7 +102,6 @@ const createTablesManually = async () => {
       );
     `);
     console.log('✅ Bids table created with foreign key constraints');
-
   } catch (error) {
     console.log('Table creation error:', error.message);
   }
@@ -238,12 +215,12 @@ const startServer = async () => {
   }
 };
 
-// PRODUCTION: Static file serving
+// PRODUCTION: Static file serving with EXPRESS 5.x COMPATIBLE CATCH-ALL
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'public')));
 
-  // SAFE catch-all route
-  app.get('*', (req, res) => {
+  // FIXED: Express 5.x compatible catch-all route using regex
+  app.get(/(.*)/, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
 }
