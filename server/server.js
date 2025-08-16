@@ -7,6 +7,11 @@ const socketIo = require('socket.io');
 const path = require('path');
 const sequelize = require('./config/database');
 
+// Import new services and middleware
+const { startAuctionScheduler } = require('./services/scheduler');
+const analyticsRoutes = require('./routes/analytics');
+const errorHandler = require('./middleware/errorHandler');
+
 console.log('Initializing Redis...');
 const redis = require('./config/redis');
 
@@ -34,22 +39,25 @@ app.use(cors({
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Fixed __dirname
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.set('io', io);
 
 console.log('📋 Registering routes...');
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/auctions', require('./routes/auctions'));
+app.use('/api/analytics', analyticsRoutes);
 console.log('✅ Routes registered');
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is working!', timestamp: new Date() });
 });
 
+// Add error handler after routes
+app.use(errorHandler);
+
 const createTablesManually = async () => {
   try {
-    // **FIX: Drop existing tables with wrong case first**
     console.log('🗑️ Dropping existing tables to fix case issues...');
     await sequelize.query('DROP TABLE IF EXISTS "bids" CASCADE;');
     await sequelize.query('DROP TABLE IF EXISTS "auctions" CASCADE;');
@@ -93,7 +101,6 @@ const createTablesManually = async () => {
     `);
     console.log('✅ Auctions table created');
 
-    // **FIX: Create Bids table with proper foreign keys**
     await sequelize.query(`
       CREATE TABLE "Bids" (
         "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -205,6 +212,10 @@ const startServer = async () => {
     console.log('✅ Connected to Supabase PostgreSQL');
     await createTablesManually();
     console.log('✅ All tables ready with proper constraints');
+
+    // Start auction scheduler
+    startAuctionScheduler();
+
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, '0.0.0.0', () => {
       console.log('🚀 Server running on port ' + PORT);
@@ -217,14 +228,12 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'public')));
   app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
-
-
-
 }
 
 startServer();

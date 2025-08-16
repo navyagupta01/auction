@@ -57,3 +57,19 @@ export const auctionAPI = {
     });
   },
 };
+// Add these methods to your existing auctionAPI object
+export const auctionAPI = {
+  // ... your existing methods ...
+
+  // Seller dashboard methods
+  getUserAuctions: () => api.get('/auctions/my'),
+  endAuction: (id) => api.put(`/auctions/${id}/end`),
+  getAuctionAnalytics: (id) => api.get(`/auctions/${id}/analytics`),
+};
+
+// Add analytics API
+export const analyticsAPI = {
+  getStats: () => api.get('/analytics/stats'),
+  getRevenue: () => api.get('/analytics/revenue'),
+};
+

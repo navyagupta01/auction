@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import {
   Container, Grid, Card, CardContent, Button, Typography, Chip,
-  Box, Alert, CircularProgress
+  Box, Alert, CircularProgress, Paper
 } from '@mui/material';
-import { EmojiEvents, AttachMoney, Schedule } from '@mui/icons-material';
-import { auctionAPI } from '../services/api';
+import { EmojiEvents, AttachMoney, Schedule, TrendingUp } from '@mui/icons-material';
+import { auctionAPI, analyticsAPI } from '../services/api';
 
 const SellerDashboard = () => {
   const [auctions, setAuctions] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchMyAuctions();
+    Promise.all([
+      fetchMyAuctions(),
+      fetchStats()
+    ]);
   }, []);
 
   const fetchMyAuctions = async () => {
@@ -22,6 +26,15 @@ const SellerDashboard = () => {
     } catch (error) {
       setError('Failed to load auctions');
       console.error('Error fetching auctions:', error);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await analyticsAPI.getStats();
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
     } finally {
       setLoading(false);
     }
@@ -31,7 +44,7 @@ const SellerDashboard = () => {
     try {
       setLoading(true);
       await auctionAPI.endAuction(id);
-      await fetchMyAuctions(); // Refresh list
+      await Promise.all([fetchMyAuctions(), fetchStats()]);
       setError('');
     } catch (error) {
       setError('Failed to end auction');
@@ -49,11 +62,11 @@ const SellerDashboard = () => {
     }
   };
 
-  if (loading) {
+  if (loading && !auctions.length) {
     return (
       <Container sx={{ textAlign: 'center', mt: 4 }}>
         <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Loading your auctions...</Typography>
+        <Typography sx={{ mt: 2 }}>Loading dashboard...</Typography>
       </Container>
     );
   }
@@ -61,7 +74,7 @@ const SellerDashboard = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>
-        📊 My Auctions Dashboard
+        📊 Seller Dashboard
       </Typography>
 
       {error && (
@@ -70,10 +83,53 @@ const SellerDashboard = () => {
         </Alert>
       )}
 
+      {/* Stats Cards */}
+      {stats && (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light' }}>
+              <Typography variant="h4" color="primary.main">
+                {stats.totalAuctions}
+              </Typography>
+              <Typography color="primary.main">Total Auctions</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light' }}>
+              <Typography variant="h4" color="success.main">
+                {stats.activeAuctions}
+              </Typography>
+              <Typography color="success.main">Active</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'info.light' }}>
+              <Typography variant="h4" color="info.main">
+                {stats.completedSales}
+              </Typography>
+              <Typography color="info.main">Completed Sales</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light' }}>
+              <Typography variant="h4" color="warning.main">
+                ₹{stats.totalRevenue?.toLocaleString() || 0}
+              </Typography>
+              <Typography color="warning.main">Total Revenue</Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Auctions Grid */}
+      <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
+        My Auctions
+      </Typography>
+
       <Grid container spacing={3}>
         {auctions.map(auction => (
           <Grid item xs={12} md={6} lg={4} key={auction.id}>
-            <Card sx={{ height: '100%', position: 'relative' }}>
+            <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom noWrap>
                   {auction.title}
@@ -89,7 +145,7 @@ const SellerDashboard = () => {
 
                 <Typography color="text.secondary" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <AttachMoney sx={{ mr: 0.5 }} />
-                  Current: ₹{auction.currentPrice}
+                  Current: ₹{auction.currentPrice?.toLocaleString()}
                 </Typography>
 
                 <Typography color="text.secondary" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
