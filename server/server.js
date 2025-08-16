@@ -226,12 +226,12 @@ const startServer = async () => {
   }
 };
 
-// CRITICAL FIX: Production static file serving with catch-all route
+// PRODUCTION: Static file serving with catch-all route
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'public')));
 
-  // CATCH-ALL ROUTE: This must come AFTER all API routes but BEFORE error handler
-  app.get('*', (req, res) => {
+  // FIXED: Proper catch-all route (must come AFTER all API routes)
+  app.get('/*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
 }
