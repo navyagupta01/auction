@@ -4,32 +4,24 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: false, // Change to false to prevent CORS issues
+  withCredentials: false
 });
 
-// **CRITICAL FIX: Use proper axios method format**
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
-      console.log('🔐 Adding auth token to request:', config.url);
-    } else {
-      console.log('❌ No token found in localStorage');
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Handle auth errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.log('❌ Auth failed, redirecting to login');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -48,28 +40,14 @@ export const auctionAPI = {
   getAll: () => api.get('/auctions'),
   getById: (id) => api.get(`/auctions/${id}`),
   getUserAuctions: () => api.get('/auctions/my'),
-  create: (formData) => {
-    return api({
-      method: 'post',
-      url: '/auctions',
-      data: formData,
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  },
-};
-// Add these methods to your existing auctionAPI object
-export const auctionAPI = {
-  // ... your existing methods ...
-
-  // Seller dashboard methods
-  getUserAuctions: () => api.get('/auctions/my'),
+  create: (formData) => api.post('/auctions', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   endAuction: (id) => api.put(`/auctions/${id}/end`),
   getAuctionAnalytics: (id) => api.get(`/auctions/${id}/analytics`),
 };
 
-// Add analytics API
 export const analyticsAPI = {
   getStats: () => api.get('/analytics/stats'),
   getRevenue: () => api.get('/analytics/revenue'),
 };
-
