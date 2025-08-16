@@ -1,45 +1,26 @@
-// Add explicit dotenv config at the top
-require('dotenv').config();
+
 
 const { Sequelize } = require('sequelize');
+require('dotenv').config();
 
-// Debug: Check if SUPABASE_URL is loaded
-console.log('🔍 SUPABASE_URL loaded:', process.env.SUPABASE_URL ? 'YES' : 'NO');
-console.log('🔍 Full URL:', process.env.SUPABASE_URL);
+console.log('🔍 DATABASE_URL loaded:', !!process.env.DATABASE_URL);
+console.log('🔍 Full URL:', process.env.DATABASE_URL);
 
-// Exit if SUPABASE_URL is missing
-if (!process.env.SUPABASE_URL) {
-  console.error('❌ SUPABASE_URL is missing from .env file');
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL is missing from environment variables');
   process.exit(1);
 }
 
-const sequelize = new Sequelize(process.env.SUPABASE_URL, {
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
+  protocol: 'postgres',
   dialectOptions: {
     ssl: {
       require: true,
       rejectUnauthorized: false
     }
   },
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000
-  },
-  logging: false
+  logging: console.log
 });
-
-// Test connection
-const testConnection = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log('✅ Connected to Supabase PostgreSQL');
-  } catch (error) {
-    console.error('❌ Supabase connection failed:', error);
-  }
-};
-
-testConnection();
 
 module.exports = sequelize;
