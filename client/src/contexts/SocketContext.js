@@ -20,7 +20,7 @@ export const SocketProvider = ({ children }) => {
       console.log('🔌 Initializing socket connection for user:', user.email);
 
       // Create socket connection
-      socketInstance = io('http://localhost:5000', {
+      socketInstance = io('https://auction-v80a.onrender.com/', {
         transports: ['websocket', 'polling'], // Allow both transports
         timeout: 10000,
         forceNew: true

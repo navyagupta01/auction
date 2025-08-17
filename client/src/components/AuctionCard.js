@@ -41,8 +41,9 @@ const AuctionCard = ({ auction }) => {
 
   // Fix: Always point to backend server (port 5000) for images
   const hasValidImage = auction.images && auction.images.length > 0 && !imgError;
-  const imageUrl = hasValidImage
-    ? `http://localhost:5000/uploads/${auction.images[0]}`  // Force backend URL
+  const API_BASE=process.env.REACT_APP_API_URL?.replace('/api','') || 'https://auction-v80a.onrender.com';
+
+  const imageUrl = hasValidImage ? `${API_BASE}/uploads/${auction.images}`
     : null;
 
   console.log('🖼️ Image URL:', imageUrl);
