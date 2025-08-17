@@ -81,7 +81,7 @@ const Navbar = () => {
                 color="inherit"
                 startIcon={<AddIcon />}
                 component={Link}
-                to="/create-auction"
+                to="/create"
                 sx={{
                   textTransform: 'none',
                   bgcolor: 'rgba(255, 255, 255, 0.1)',

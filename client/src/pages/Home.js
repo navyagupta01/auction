@@ -117,7 +117,7 @@ const Home = () => {
                 variant="outlined"
                 size="large"
                 component={Link}
-                to="/create-auction"
+                to="/create"
                 sx={{
                   color: 'white',
                   borderColor: 'white',
@@ -231,7 +231,7 @@ const Home = () => {
                   variant="contained"
                   size="large"
                   component={Link}
-                  to="/create-auction"
+                  to="/create"
                   startIcon={<Gavel />}
                 >
                   Create First Auction
